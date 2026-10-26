@@ -5,3 +5,5 @@ langchain-groq
 langchain-pinecone
 langchain-huggingface
 pypdf
+uvicorn 
+fastapi
