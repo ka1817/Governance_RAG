@@ -8,8 +8,3 @@ class Preprocessing:
         chunks=splitter.split_documents(self.docs)
         print(len(chunks)) 
         return chunks
-
-obj=DataIngestion("../data/Govt_RAG.pdf")
-docs=obj.ingest()
-obj1=Preprocessing(docs)
-obj1.split()

@@ -1,33 +1,105 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
+
 from src.genaration import RAGPipeline
 
+
+# --------------------------------------------------
+# FastAPI application
+# --------------------------------------------------
+
 app = FastAPI(
-    title="Governance RAG API",
-    description="Ask questions about governance documents",
+    title="Governance RAG Assistant",
+    description="Ask questions about governance documents using RAG.",
     version="1.0.0"
 )
 
-# Initialize RAG pipeline
+
+# --------------------------------------------------
+# Frontend configuration
+# --------------------------------------------------
+
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
+
+templates = Jinja2Templates(directory="templates")
+
+
+# --------------------------------------------------
+# Initialize RAG pipeline once
+# --------------------------------------------------
+
 rag = RAGPipeline()
 
 
-class QuestionRequest(BaseModel):
-    question: str
+# --------------------------------------------------
+# Request model
+# --------------------------------------------------
 
+class QuestionRequest(BaseModel):
+    question: str = Field(
+        ...,
+        min_length=1,
+        max_length=4000,
+        description="Question about the governance documents"
+    )
+
+
+# --------------------------------------------------
+# Home route
+# --------------------------------------------------
 
 @app.get("/")
-def home():
-    return {"message": "Governance RAG API is running"}
+def home(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html"
+    )
 
+
+# --------------------------------------------------
+# Health check
+# --------------------------------------------------
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "application": "Governance RAG Assistant"
+    }
+
+
+# --------------------------------------------------
+# RAG question-answering endpoint
+# --------------------------------------------------
 
 @app.post("/ask")
 def ask_question(request: QuestionRequest):
+    question = request.question.strip()
+
+    if not question:
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a question."
+        )
+
     try:
-        answer = rag.ask(request.question)
+        answer = rag.ask(question)
+
         return {
-            "question": request.question,
+            "question": question,
             "answer": answer
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    except Exception:
+        # Avoid exposing API keys or internal details to clients.
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate an answer. Check the server logs."
+        )

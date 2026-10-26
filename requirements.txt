@@ -7,3 +7,4 @@ langchain-huggingface
 pypdf
 uvicorn 
 fastapi
+jinja2

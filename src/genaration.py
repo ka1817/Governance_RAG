@@ -109,12 +109,3 @@ Answer:
         return self.rag_pipeline.invoke(question)
 
 
-# Initialize the pipeline once
-rag = RAGPipeline()
-
-# Ask a question
-question = "What are the main governance requirements?"
-answer = rag.ask(question)
-
-print("Answer:\n")
-print(answer)

@@ -1,0 +1,284 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Governance AI | RAG Assistant</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">G</div>
+                <div>
+                    <h2>Governance AI</h2>
+                    <p>Knowledge Assistant</p>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <p class="section-label">WORKSPACE</p>
+
+                <div class="sidebar-item active">
+                    <span>✦</span>
+                    Governance Assistant
+                </div>
+
+                <div class="sidebar-item">
+                    <span>▤</span>
+                    Document Search
+                </div>
+            </div>
+
+            <div class="sidebar-bottom">
+                <div class="status-indicator"></div>
+                <div>
+                    <strong>RAG System</strong>
+                    <p>Connected interface</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+
+            <header class="topbar">
+                <div>
+                    <p class="breadcrumb">Workspace / Assistant</p>
+                    <h1>Governance Assistant</h1>
+                </div>
+
+                <div class="topbar-badge">
+                    <span class="online-dot"></span>
+                    AI Assistant
+                </div>
+            </header>
+
+            <section class="chat-area">
+
+                <div class="welcome-section" id="welcomeSection">
+                    <div class="welcome-icon">✦</div>
+
+                    <p class="eyebrow">YOUR GOVERNANCE KNOWLEDGE PARTNER</p>
+
+                    <h2>How can I help you<br>understand governance?</h2>
+
+                    <p class="welcome-description">
+                        Ask questions about your governance documents.
+                        The assistant retrieves relevant information from
+                        your knowledge base to generate answers.
+                    </p>
+
+                    <div class="suggestion-grid">
+                        <button class="suggestion-card"
+                                data-question="What are the main governance requirements?">
+                            <span class="suggestion-icon">⌘</span>
+                            <strong>Main requirements</strong>
+                            <small>Explore key governance requirements</small>
+                        </button>
+
+                        <button class="suggestion-card"
+                                data-question="What are the responsibilities of the governing body?">
+                            <span class="suggestion-icon">◎</span>
+                            <strong>Roles and responsibilities</strong>
+                            <small>Understand governance roles</small>
+                        </button>
+
+                        <button class="suggestion-card"
+                                data-question="What policies and procedures are described in the document?">
+                            <span class="suggestion-icon">▤</span>
+                            <strong>Policies and procedures</strong>
+                            <small>Find documented policies</small>
+                        </button>
+
+                        <button class="suggestion-card"
+                                data-question="Summarize the important points in the governance document.">
+                            <span class="suggestion-icon">☷</span>
+                            <strong>Document summary</strong>
+                            <small>Review the important points</small>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages appear here -->
+                <div id="chatMessages" class="chat-messages"
+                     aria-live="polite"></div>
+
+                <!-- Error message -->
+                <div id="errorMessage" class="error-message"
+                     role="alert" hidden></div>
+
+            </section>
+
+            <!-- Question input -->
+            <footer class="input-section">
+                <form id="questionForm" class="question-form">
+                    <textarea
+                        id="questionInput"
+                        name="question"
+                        placeholder="Ask a governance question..."
+                        rows="1"
+                        maxlength="4000"
+                        required
+                        aria-label="Your governance question"
+                    ></textarea>
+
+                    <div class="input-toolbar">
+                        <p>
+                            <span class="keyboard-icon">↵</span>
+                            Enter to send · Shift + Enter for a new line
+                        </p>
+
+                        <button type="submit" id="sendButton"
+                                class="send-button">
+                            <span id="sendButtonText">Ask AI</span>
+                            <span aria-hidden="true">➤</span>
+                        </button>
+                    </div>
+                </form>
+
+                <p class="disclaimer">
+                    AI-generated responses may require verification against
+                    the original governance document.
+                </p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script>
+        const questionForm = document.getElementById("questionForm");
+        const questionInput = document.getElementById("questionInput");
+        const chatMessages = document.getElementById("chatMessages");
+        const welcomeSection = document.getElementById("welcomeSection");
+        const sendButton = document.getElementById("sendButton");
+        const sendButtonText = document.getElementById("sendButtonText");
+        const errorMessage = document.getElementById("errorMessage");
+
+        function addMessage(role, text) {
+            const message = document.createElement("div");
+            message.className = `message ${role}`;
+
+            const avatar = document.createElement("div");
+            avatar.className = "message-avatar";
+            avatar.textContent = role === "user" ? "You" : "G";
+
+            const content = document.createElement("div");
+            content.className = "message-content";
+
+            const label = document.createElement("p");
+            label.className = "message-label";
+            label.textContent = role === "user"
+                ? "YOU"
+                : "GOVERNANCE AI";
+
+            const body = document.createElement("div");
+            body.className = "message-text";
+            body.textContent = text;
+
+            content.appendChild(label);
+            content.appendChild(body);
+            message.appendChild(avatar);
+            message.appendChild(content);
+            chatMessages.appendChild(message);
+
+            message.scrollIntoView({
+                behavior: "smooth",
+                block: "nearest"
+            });
+
+            return message;
+        }
+
+        async function askQuestion(question) {
+            question = question.trim();
+
+            if (!question || sendButton.disabled) {
+                return;
+            }
+
+            welcomeSection.hidden = true;
+            errorMessage.hidden = true;
+            errorMessage.textContent = "";
+
+            addMessage("user", question);
+
+            questionInput.value = "";
+            questionInput.style.height = "auto";
+
+            sendButton.disabled = true;
+            sendButtonText.textContent = "Thinking...";
+
+            const loadingMessage = addMessage("assistant", "Searching your governance knowledge base...");
+
+            try {
+                const response = await fetch("/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        question: question
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.detail || "The request could not be completed."
+                    );
+                }
+
+                const answer = data.answer || "No answer was returned.";
+                loadingMessage.querySelector(".message-text").textContent = answer;
+
+            } catch (error) {
+                loadingMessage.remove();
+
+                errorMessage.textContent =
+                    error.message.includes("Failed to fetch")
+                        ? "Cannot connect to the API. Make sure FastAPI is running."
+                        : error.message;
+
+                errorMessage.hidden = false;
+
+            } finally {
+                sendButton.disabled = false;
+                sendButtonText.textContent = "Ask AI";
+                questionInput.focus();
+            }
+        }
+
+        questionForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+            askQuestion(questionInput.value);
+        });
+
+        questionInput.addEventListener("keydown", function(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                questionForm.requestSubmit();
+            }
+        });
+
+        questionInput.addEventListener("input", function() {
+            this.style.height = "auto";
+            this.style.height = Math.min(this.scrollHeight, 160) + "px";
+        });
+
+        document.querySelectorAll(".suggestion-card").forEach(button => {
+            button.addEventListener("click", function() {
+                askQuestion(this.dataset.question);
+            });
+        });
+    </script>
+</body>
+</html>

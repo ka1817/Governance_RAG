@@ -126,38 +126,3 @@ class GovernanceRetriever:
         return retriever.invoke(question)
 
 
-if __name__ == "__main__":
-    from data_ingestion import DataIngestion
-    from data_preprocessing import Preprocessing
-
-    # 1. Load the PDF
-    ingestion = DataIngestion("../data/Govt_RAG.pdf")
-    docs = ingestion.ingest()
-
-    if not docs:
-        raise ValueError("No documents loaded from the PDF.")
-
-    # 2. Split the documents
-    preprocessing = Preprocessing(docs)
-    chunks = preprocessing.split()
-
-    if not chunks:
-        raise ValueError("No chunks generated.")
-
-    # 3. Initialize the retriever class
-    governance = GovernanceRetriever(
-        index_name="governance-rag-index",
-        batch_size=32,
-        k=3
-    )
-
-
-    governance.upload_documents(chunks)
-
-    question = "What are the main governance requirements?"
-    results = governance.retrieve(question)
-
-    for i, doc in enumerate(results, start=1):
-        print(f"\n--- Result {i} ---")
-        print(doc.page_content)
-        print("Metadata:", doc.metadata)

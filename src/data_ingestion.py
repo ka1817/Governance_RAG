@@ -8,6 +8,4 @@ class DataIngestion:
         print("Number of pages loaded:", len(docs))
 
         return docs 
-obj=DataIngestion("../data/Govt_RAG.pdf")
-obj.ingest()
 
