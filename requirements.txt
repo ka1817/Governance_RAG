@@ -8,3 +8,4 @@ pypdf
 uvicorn 
 fastapi
 jinja2
+sentence-transformers
